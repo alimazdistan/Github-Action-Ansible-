@@ -1,0 +1,43 @@
+- name: Deploy Node.js App to EC2 with Nginx
+  hosts: webservers
+  become: yes
+
+  tasks:
+    - name: Install Node.js and npm
+      apt:
+        name: [nodejs, npm]
+        state: present
+        update_cache: yes
+
+    
+
+    - name: Create app directory
+      file:
+        path: /home/ubuntu/nodeapp
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Copy app files
+      copy:
+        src: ../
+        dest: /home/ubuntu/nodeapp/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Install app dependencies
+      shell: |
+        cd /home/ubuntu/nodeapp
+        npm install
+      args:
+        executable: /bin/bash
+
+    - name: Start Node.js app
+      shell: |
+        cd /home/ubuntu/nodeapp
+        nohup npm start > app.log 2>&1 &
+      args:
+        executable: /bin/bash
+
+    
