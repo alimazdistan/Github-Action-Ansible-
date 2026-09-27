@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
-test
+
 app.get('/', (req, res) => {
-  res.send('Hello from EC2');
+  res.send('Hello from EC21');
 });
 
 const PORT = 80;
