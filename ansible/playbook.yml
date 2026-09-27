@@ -1,4 +1,4 @@
-- name: Deploy Node.js App to EC2 with Nginx
+- name: Deploy Node.js App to EC2 
   hosts: webservers
   become: yes
 
