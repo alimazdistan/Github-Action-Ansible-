@@ -9,8 +9,6 @@
         state: present
         update_cache: yes
 
-    
-
     - name: Create app directory
       file:
         path: /home/ubuntu/nodeapp
@@ -33,11 +31,27 @@
       args:
         executable: /bin/bash
 
-    - name: Start Node.js app
-      shell: |
-        cd /home/ubuntu/nodeapp
-        nohup npm start > app.log 2>&1 &
-      args:
-        executable: /bin/bash
+    - name: Create systemd service file for Node.js app
+      copy:
+        dest: /etc/systemd/system/nodeapp.service
+        content: |
+          [Unit]
+          Description=Node.js App
+          After=network.target
 
-    
+          [Service]
+          ExecStart=/usr/bin/node /home/ubuntu/nodeapp/app.js
+          WorkingDirectory=/home/ubuntu/nodeapp
+          Restart=always
+          User=root
+          Environment=NODE_ENV=production
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd and (re)start Node.js service
+      systemd:
+        name: nodeapp
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
