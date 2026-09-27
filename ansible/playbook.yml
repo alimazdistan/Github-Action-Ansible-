@@ -1,4 +1,4 @@
-- name: Deploy Node.js App to EC2 
+- name: Deploy Node.js App to EC2
   hosts: webservers
   become: yes
 
@@ -16,6 +16,18 @@
         owner: ubuntu
         group: ubuntu
 
+    - name: Check if a previous release exists
+      stat:
+        path: /home/ubuntu/nodeapp/app.js
+      register: existing_release
+
+    - name: Backup current release
+      copy:
+        src: /home/ubuntu/nodeapp/
+        dest: /home/ubuntu/nodeapp_backup/
+        remote_src: yes
+      when: existing_release.stat.exists
+
     - name: Copy app files
       copy:
         src: ../
@@ -30,6 +42,8 @@
         npm install
       args:
         executable: /bin/bash
+      register: install_result
+      failed_when: install_result.rc != 0
 
     - name: Create systemd service file for Node.js app
       copy:
@@ -55,3 +69,33 @@
         daemon_reload: yes
         enabled: yes
         state: restarted
+
+    - name: Health check
+      uri:
+        url: http://localhost:3000/health
+        status_code: 200
+      register: health
+      retries: 5
+      delay: 3
+      until: health.status == 200
+      ignore_errors: yes
+
+    - name: Rollback if health check failed
+      when: health.failed
+      block:
+        - name: Restore previous release
+          copy:
+            src: /home/ubuntu/nodeapp_backup/
+            dest: /home/ubuntu/nodeapp/
+            remote_src: yes
+          when: existing_release.stat.exists
+
+        - name: Restart service with previous release
+          systemd:
+            name: nodeapp
+            state: restarted
+          when: existing_release.stat.exists
+
+        - name: Fail the play so the pipeline reports failure
+          fail:
+            msg: "Deployment failed health check — rolled back to previous release"
