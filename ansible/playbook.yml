@@ -72,7 +72,7 @@
 
     - name: Health check
       uri:
-        url: http://localhost
+        url: http://localhost:80/
         status_code: 200
       register: health
       retries: 5
